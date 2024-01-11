@@ -1,0 +1,460 @@
+---
+title: "PCM_S4"
+author: "Marcial Escudero"
+date: "2024-01-11"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+MODELO BROWNIANO CON MULTIPLES TASAS
+
+Ahora veremos modelos brownianos en los que la tasa de evolución, sigma2, puede diferir entre diferentes clados o diferentes partes del árbol filogenético.
+Estos está implementado en varias funciones de R como por ejemplo la función ratebytree de phytools.
+Vamos a ajustar modelos con 2, 3, 4, etc. tasas de evolución y los compararemos con el modelo más simple con una sola tasa evolutiva (Revell et al., 2018). Este método fue llamado método "censored" en la descripción original del modelo (O'Meara et al., 2006).
+
+Cargaremos un dataset de dos grupos diferentes de lagartos: La familia norteamericana Phtynosomatidae y el clado sudamericano Liolaemidae (Harmon et al., 2003).
+Lo que pretendemos es comparar la tasa de evolución del tamaño del cuerpo de esos lagartos entre los dos clados.
+Los archivos necesarios están disponibles en este proyecto de R. Vamos a cargarlos y echarles un vistazo.
+
+```{r}
+## load packages
+library(phytools)
+## read trees from file
+phryn.tree<-read.tree("Phrynosomatidae.phy")
+liol.tree<-read.tree("Liolaemidae.phy")
+## subdivide plotting area
+par(mfrow=c(1,2))
+## plot the two trees, adding labels using mtext
+plotTree(phryn.tree,color="lightblue",fsize=0.5,ftype="i",mar=c(1.1,1.1,2.1,1.1))
+mtext(text="(a)",line=0,adj=0)
+plotTree(liol.tree,color="lightgreen",fsize=0.5,ftype="i",mar=c(1.1,1.1,2.1,1.1))
+mtext(text="(b)",line=0,adj=0)
+
+## read data file
+Iguania<-read.csv("Iguania.csv",row.names=1)
+head(Iguania)
+
+```
+
+Necesitamos hacer algunos ajustes para conseguir tener dos filogenias y sus respectivos dataset de fenotipos en los que coincidan las especies que tenemos en las filogenias y en los datasets.
+
+```{r}
+## load geiger
+library(geiger)
+## run name.check on phrynosomatid tree
+chk<-name.check(phryn.tree,Iguania)
+summary(chk)
+
+## subsample Iguania to include only phrynosomatids
+phryn.data<-Iguania[phryn.tree$tip.label,]
+## check to see it matches the tree
+name.check(phryn.tree,phryn.data)
+
+## subsample Iguania to include only liolaemids
+liol.data<-Iguania[liol.tree$tip.label,]
+name.check(liol.tree,liol.data)
+```
+
+En nuestro dataset tenemos 4 rasgos diferentes pero nos vamos a centrar ahora en el rasgo del tamaño total del cuerpo.
+
+```{r}
+## extract body sizes (SVL) for phrynosomatids and liolaemids
+## into separate vectors
+phryn.size<-log(setNames(phryn.data$SVL,rownames(phryn.data)))
+liol.size<-log(setNames(liol.data$SVL,rownames(liol.data)))
+```
+
+Ahora vamos a ajustar nuestro modelos. La función ratbytree es capaz de coger una lista de árboles y una lista de rasgos. Usaremos esta opción para ajustar la evolución de nuestro rasgo de interés en las dos filogenias.
+
+```{r}
+## fit our censored multi-rate Brownian model using
+## phytools::ratebytree
+fit.size<-ratebytree(c(phryn.tree,liol.tree),list(phryn.size,liol.size))
+fit.size
+```
+
+Como podemos ver podemos rechazar la hipótesis nula de igualdad en la tasa de evolución del tamaño del cuerpo para ambos grupos. 
+
+
+MODELOS ORSTEIN-UHLENBECK CON MÚLTIPLES ÓPTIMOS
+
+Podemos también calcular modelos OU más complejos donde en vez de haber un óptimo puede haber 2, 3, 4, etc. óptimos.
+En vez de tres parametros en el modelos más simple (sigma2, theta y alpha), ahora estimamos tantos parámetros adicionales como óptimos (theta) adicionales haya.
+Para ver este modelo vamos a usar los datasets anole.data.csv y ecomorph.csv (Mahler et al., 2010) disponibles en este proyecto de R.
+En primer lugar vamos a cargar dichos datasets
+
+```{r}
+## read morphological data from file
+anole.morphology<-read.csv("anole.data.csv",row.names=1)
+## read ecological states from file
+anole.ecomorph<-read.csv("ecomorph.csv",row.names=1,stringsAsFactors=TRUE)
+
+## read in the phylogeny with ecomorph mapped
+## using phytools::read.simmap as this is not a regular tree but a tree with 6 discrete traits mapped onto the phylogeny
+ecomorph.tree<-read.simmap(file="anolis.mapped.nex",format="nexus",version=1.5)
+ecomorph.tree
+
+## check to see if data and phylogeny match using
+## geiger::name.check
+chk<-name.check(ecomorph.tree,anole.morphology)
+summary(chk)
+
+## trim our input data to match the tree using
+## negative indexing
+ecomorph.data<-anole.morphology[-which(rownames(anole.morphology)%in%chk$data_not_tree),]
+name.check(ecomorph.tree,ecomorph.data)
+
+```
+
+Para ajustar nuestro modelo OU con multiples óptimos usaremos el paquete OUwie. 
+
+```{r}
+library(OUwie)
+```
+
+En este caso no vamos a usar directamente uno y otro rasgos, en cambio haraemos un PCA filogenetico de todos los rasgos disponibles.
+
+```{r}
+## run phylogenetic PCA and print the results
+pca<-phyl.pca(ecomorph.tree,ecomorph.data)
+print(pca)
+```
+
+Vamos a utilizar en nuestros análisis el PC3 que está directamente relacionado con la longitud de la extremidad delantera y trasera e inversametne relacionado con el número de laminillas que expansiones en forma de escama de los dedos y son claves en la típica escalada de estos animales. Las especies de este grupo que viven en árboles (escaladoras) suelen tener extremidades más cortas y mayor número de laminillas por lo que el PC# es de sumo interés para estudiar el microhabitat de estos organismos.
+
+Para trabajar con OUwie lo primero que tenemos que hacer es fabricar un data.frame con los nombres de nuestras especies, el óptimo al que pertnece cada especie en nuestro análisis (en nuestro caso los diferentes microhabitat) y nuestro caracter continuo (PC3).
+
+```{r}
+## create our OUwie data frame
+ouwie.data<-data.frame(Genus_species=rownames(scores(pca)),Reg=anole.ecomorph[rownames(scores(pca)),],X=as.numeric(scores(pca)[,3]))
+head(ouwie.data,n=10)
+```
+
+También necesitaremos la reconstrucción de los microhábitats para realizar el análisis. Recuerda que este mapeo estaba disponible en el árbol que cargamos hace un momento.
+
+```{r}
+cols<-setNames(rainbow(n=6),levels(anole.ecomorph[,1]))
+plot(ecomorph.tree,cols,lwd=2,ftype="i",fsize=0.4,ylim=c(-4,82),outline=TRUE)
+add.simmap.legend(colors=cols,prompt=FALSE,x=0,y=-2,vertical=FALSE,fsize=0.9)
+```
+
+Finalmente vamos a ajustar nuestro modelos. Ajustaremos un modelo browniano simple, un modelo browniano en el que sigma2 cambia en función del microhabitat y finalmente un modelo OU en el que el optimo theta cambia en función del microhábiat.
+
+```{r}
+## fit standard, one-rate Brownian model\
+fitBM<-OUwie(ecomorph.tree,ouwie.data,model="BM1",simmap.tree=TRUE)
+fitBM
+
+## fit multi-rate Brownian model
+fitBMS<-OUwie(ecomorph.tree,ouwie.data,model="BMS",simmap.tree=TRUE,root.station=FALSE)
+fitBMS
+
+# fit multi-regime OU model
+fitOUM<-OUwie(ecomorph.tree,ouwie.data,model="OUM",simmap.tree=TRUE,root.station=FALSE)
+fitOUM
+
+## extracting AIC scores
+aic<-setNames(c(fitBM$AIC,fitBMS$AIC,fitOUM$AIC),c("BM1","BMS","OUM"))
+aic
+## compute Akaike weights
+aic.w(aic)
+```
+El modelo OU con múltiples optimos es muchísimo mejor que los otros dos modelos.
+
+Veamos un gráfico donde podemos apreciar claramente el proceso de convergencia evolutiva que se en este grupo.
+
+```{r}
+## get the tip state for ecomorph for each species
+tips<-getStates(ecomorph.tree,"tips")
+## set these tip states to have the colors using the
+## color scheme 
+tip.cols<-cols[tips]
+## plot tree with adjacent barplot using
+## phytools::plotTree.barplot
+plotTree.barplot(ecomorph.tree,scores(pca)[,3],args.plotTree=list(fsize=0.4),args.barplot=list(col=tip.cols,xlab=expression(paste("PC3 (",""%up%"","limbs, ",""%down%"","lamellae)",sep="")),cex.lab=0.8))
+## add an informative legend
+legend("topright",levels(anole.ecomorph[,1]),pch=22,pt.bg=cols,pt.cex=1.5,cex=0.9)
+```
+
+
+MODELOS BROWNIANOS CON MÚTIPLES VARIABLES Y CORRELACIONES EVOLUTIVAS
+
+En primer lugar carguemos los archivo de los datasets necesarios y echemos un vistazo
+
+```{r}
+
+# read in tree with encoded discrete state using\
+## phytools::read.simmap as it has a mapped discrete trait
+fish.tree<-read.simmap(file="Centrarchidae.nex",format="nexus",version=1.5)
+print(fish.tree,printlen=2)
+
+## read in trait data using read.csv
+fish.data<-read.csv("Centrarchidae.csv",header=TRUE,row.names=1,stringsAsFactors=TRUE)
+head(fish.data)
+
+## set colors to be used for plotting
+cols<-setNames(c("white",palette()[2]),c("non","pisc"))
+## plot "simmap" object
+plot(fish.tree,cols,lwd=3,ftype="i",outline=TRUE,fsize=0.6)
+## add a legend
+legend("topleft",c("non-piscivorous","piscivorous"),pch=22,pt.bg=cols,pt.cex=1.5,cex=0.7,bty="n")
+
+```
+
+La hipótesis que queremos comprobar es si el modo de alimentación determina caracteristicas anatómicas en este grupo de peces.
+Nuestros dos rasgos continuos son el ancho de la boca (el ancho relativo de la boca cuando está abierta) y la longitud bucal (la longitud relativa de la cavidad de la boca).
+Para comprobar esta hipótesis usaremos la función evol.vcv de phytools. Esta función necesita una filogenia con un caracter discreto mapeado y una matriz numérica (nuestro dataset fish.data tiene tres columnas, la primera un caracter discreto, y la 2 y 3 nuestros caracteres cuantitativos de interés. Constriuremos una matriz numérica a partir de estos dos caracteres cuantitativos).
+
+```{r}
+## convert numerical trait data to a matrix
+fish.buccal<-as.matrix(fish.data[,2:3])
+## fit multi-regime multivariate Brownian model
+fitMV<-evol.vcv(fish.tree,fish.buccal)
+fitMV
+```
+
+Podemos concluir que el modelo más complejo con dos matrices de covarianza entre los dos caracteres (una matriz para piscivoros y otra para no piscivoros) se ajusta mucho mejor que el modelo con una sola matriz de covarianza.
+
+Ya que las correlaciones se interpretan mucho mejor que las covarianzas vamos a calcularlas a partir de la función cov2cor.
+
+```{r}
+cov2cor(fitMV$R.single)
+cov2cor(fitMV$R.multiple[,,"non"])
+cov2cor(fitMV$R.multiple[,,"pisc"])
+```
+
+Esto nos muestra que el mejor modelo, la correlacion coevolutiva between nuestras dos variables cuantitativas es mucho mayor en peces piscivoros quen en no piscivoros. Esto tiene sentido biológico ya que en los peces piscivoros es necesario una integración mucho mayor de los diferentes aspectos del aparato de alimentación.
+Vamos a visualizar este patrón.
+```{r}
+## modify the margins of the plot area and adjust axis
+## and label font sizes
+par(cex.lab=0.7,cex.axis=0.6,mar=c(5.1,4.1,1.1,2.1))
+## plot the phylomorphospace without the mapped
+## regimes
+phylomorphospace(as.phylo(fish.tree),fish.buccal,ftype="off",lwd=4,xlab="gape width",ylab="buccal length",node.size=c(0,0),bty="n")
+## add the phylomorphospace projection with the
+## mapped regimes
+phylomorphospace(fish.tree,fish.buccal,ftype="off",colors=cols,lwd=2,node.by.map=TRUE,xlab="gape width",ylab="buccal length",node.size=c(0,1.3),add=TRUE)
+## add a legend
+legend("topleft",c("non-piscivorous","piscivorous"),pch=22,pt.bg=cols,pt.cex=1.5,cex=0.7)
+```
+
+HETEROGENEIDAD EVOLUTIVA DEL MODELO BROWNIANO
+
+Ahora ajustaremos modelos en los que la tasa evolutiva sigma2 varía en función del tiempo.
+
+Una primera posibiliad es que haya cambios bruscos en la tasa de evolución en un punto o varios puntos de la filogenia. Pero en este caso en vez de eso cambios estar marcados a priori por un caracter discreto, la localización del dichos cambios será también estimada.
+Esto lo podemos hacer con la función rateshift de phytools.
+Para comprobar esto vamos a utilizar un dataset de Broeckhoven et al., (2016) en la que los autores estudian la evolución de las estructura de defensa en una familia de lagartos sudafricanos, Cordylidae. Usaremos la función mencionada para ajustar un modelo en la que la tasa de cambio descenso de manera brusca a partir de un momento (En el estudio original se ajusto un modelo EB o early burst en la que tasa de evolución es máxima en la raiz del árbol y luego decae progresivamente hasta el presente).
+En primer lugar vamos a cargar y explorar los dataset disponibles en este proyecto de R.
+
+```{r}
+## read cordylid tree from file
+cordylid.tree<-read.tree(file="cordylid-tree.phy")
+print(cordylid.tree,printlen=4)
+
+## read cordylid data from file
+cordylid.data<-read.csv(file="cordylid-data.csv",row.names=1)
+head(cordylid.data)
+
+```
+
+Los datos vienen de un PCA. El PC1 está directamente correlacionado con longitud de las espinas e inversamente correlacionado con la longitud de las extremidades.
+
+```{r}
+cordylid.pc1<-setNames(cordylid.data$pPC1,rownames(cordylid.data))
+```
+
+Ahora vamos a ajustar modelos brownianos simples, with un cambio en la tasa y con dos cambios en la tasa de evolución.
+Vamos a incluir también el modelo EB para comparar con el estudio original. 
+Y finalmente vamos a comparar todos los modelos.
+
+```{r}
+## fit single-rate model (no rate shift)
+fit1<-rateshift(cordylid.tree,cordylid.pc1)
+## fit two-rate model (one rate shift)
+fit2<-rateshift(cordylid.tree,cordylid.pc1,nrates=2)
+## fit three-rate model (two rate shifts)
+fit3<-rateshift(cordylid.tree,cordylid.pc1,nrates=3)
+## fit EB model using geiger::fitContinuous
+fitEB<-fitContinuous(cordylid.tree,cordylid.pc1,model="EB")
+## compile our results into a list, sorted by
+## the number of parameters estimated
+fits<-list(fit1,fitEB,fit2,fit3)
+## create a table summarizing model fits
+data.frame(model=c("BM","EB","two-rate","three-rate"),logL=sapply(fits,logLik),k=sapply(fits,function(x) attr(logLik(x),"df")),AIC=sapply(fits,AIC),weight=unclass(aic.w(sapply(fits,AIC))))
+```
+
+El mejor modelo es el que tiene 2 tasas evolutivas (aunque muy cercano al que tiene una sola tasa evolutiva).
+Veamos el más complejo.
+
+```{r}
+
+fit3
+```
+
+La mayor tasa de evolución es al principio. Luego cae buscamente. Y al final sube un poco.
+
+Veamoslo en una representación gráfica.
+
+```{r}
+## compute the total height of our cordylid tree
+h<-max(nodeHeights(cordylid.tree))
+## split our plot window into eight panels
+par(mfrow=c(4,2))
+## panel a) single-rate model graphed on the tree
+plot(fit1,mar=c(1.1,4.1,2.1,0.1),ftype="i",fsize=0.5,col="gray")
+mtext("(a)",adj=0,line=0)
+## panel b) line graph of single-rate model
+par(mar=c(4.1,4.1,2.1,1.1))
+plot(NA,xlim=c(0,h),ylim=c(0,12),xlab="time",ylab=expression(sigma^2),bty="n")
+lines(c(0,h),rep(fit1$sig2,2),lwd=3,col="gray")
+mtext("(b)",adj=0,line=0)
+## panel c) compute EB model and graph it on the tree
+## calculate sigmaˆ2 through time under fitted model
+s2<-fitEB$opt$sigsq*exp(fitEB$opt$a*seq(h/200,h-h/200,length.out=100))
+s2.index<-round((s2-min(s2))/diff(range(s2))*100)+1
+## use make.era.map to paint fitted EB model onto tree
+tmp<-make.era.map(cordylid.tree,setNames(seq(0,h,length.out=101),s2.index))
+## set colors for graphing
+cols<-setNames(gray.colors(101,0.9,0),1:101)
+## plot tree
+plot(tmp,cols,mar=c(1.1,4.1,2.1,0.1),ftype="i",ylim=c(-0.1*Ntip(cordylid.tree),Ntip(cordylid.tree)),fsize=0.5)
+## add color bar legend
+add.color.bar(leg=0.5*h,cols=cols,prompt=FALSE,x=0,y=-0.05*Ntip(cordylid.tree),lims=round(range(s2),3),title=expression(sigma^2))
+mtext("(c)",adj=0,line=0)
+## panel d) line graph of EB model
+par(mar=c(4.1,4.1,2.1,1.1))
+plot(NA,xlim=c(0,h),ylim=c(0,12),xlab="time",ylab=expression(sigma^2),bty="n")
+lines(seq(0,h,length.out=100),s2,lwd=3,col="gray")
+mtext("(d)",adj=0,line=0)
+## panel e) two-rate model projected on the tree
+plot(fit2,mar=c(1.1,4.1,2.1,0.1),ftype="i",fsize=0.5,col=cols)
+mtext("(e)",adj=0,line=0)
+## panel f) line graph of two-rate model
+par(mar=c(4.1,4.1,2.1,1.1))
+plot(NA,xlim=c(0,h),ylim=c(0,12),xlab="time",ylab=expression(sigma^2),bty="n")
+lines(c(0,fit2$shift,h),c(fit2$sig2,fit2$sig2[2]),type="s",lwd=3,col="gray")
+mtext("(f)",adj=0,line=0)
+## panel g) three-rate model projected on the tree
+plot(fit3,mar=c(1.1,4.1,2.1,0.1),ftype="i",fsize=0.5,col=cols)
+mtext("(g)",adj=0,line=0)
+## panel h) line graph of three-rate model
+par(mar=c(4.1,4.1,2.1,1.1))
+plot(NA,xlim=c(0,h),ylim=c(0,12),xlab="time",ylab=expression(sigma^2),bty="n")
+lines(c(0,fit3$shift,h),c(fit3$sig2,fit3$sig2[3]),type="s",lwd=3,col="gray")
+mtext("(h)",adj=0,line=0)
+```
+
+
+ESTADÍSTICA BAYESIANA PARA LA COMPUTACIÓN DE MODELOS COMPLEJOS
+
+En este caso usamos rjMCMC (reversible jump Markov chain Monte Carlo). Es similar a MCMC pero en este caso no solo muestreamos diferentes valores de los parametros en la cadenas de Markov para calcular su distribución a posteriorin en este caso incluso saltamos entre diferentes altenativas de conjunto de parámetros en los modelos muestreados.
+En este caso podremos muestrear parametros entre diferentes modelos en los que no hay cambio en la tasa evolutiva o bien hay 1, 2, 3, etc. cambios en la tasa evolutiva. Al final obtendremos la distribución y probabilidad a posteriori de los diferentes parámeteros y modelos muestreados.
+Este tipo de análisis han aparecido recientemente (Eastman et al., 2011; Pagel and Meade 2013) pero cada vez se están haciendo más y más populares.
+Hay diferentes implementaciones de modelos mediante rjMCMC. Nosotros revemos una de ellas, en concreto la que está implementada en el paquete bayou de R. En este paquete se pueden inferir mediante rjMCMC el número de cambos de optimo en modelos OU más o menos complejos.
+El paquete Bayou no está en CRAN y tendrás que instalarlo directamente desde un repositorio de Github con la función install_github del paquete de R devtools.
+
+```{r}
+## load devtools
+require(devtools)
+## install bayou from GitHub
+install_github("uyedaj/bayou")
+library(bayou)
+
+```
+
+Para estos análisis usaremos los datos de masa corporal de mamíferos que están disponible en este proyecto de R.
+
+```{r}
+## read mammal tree from file
+mammal.tree<-read.tree("mammalHR.phy")
+print(mammal.tree,printlen=4)
+
+## read mammal data
+mammal.data<-read.csv("mammalHR.csv",row.names=1)
+## extra log body mass as a new vector
+bodyMass<-setNames(log(mammal.data$bodyMass),rownames(mammal.data))
+
+```
+
+En primer lugar vamos a crear la distribución a priori de nuestro parámetros a estimar con la función make.prior.
+
+```{r}
+## turn of the box for our plot
+par(bty="n")
+## make our OU prior distribution
+priorOU<-make.prior(mammal.tree,dists=list(dalpha="dhalfcauchy",dsig2="dhalfcauchy",dk="cdpois",dtheta="dnorm"),param=list(dalpha=list(scale=0.1),dsig2=list(scale=0.1),dk=list(lambda=10, kmax=50),dsb=list(bmax=1, prob=1),dtheta=list(mean=mean(bodyMass),sd=1.5*sd(bodyMass))),plot.prior=TRUE)
+```
+
+La configuración de dalpha="dhalfcauchy" asigna una distribución a priori tipo half-Cauchy parámetro alpaha del modelo OU. Del mismo modo, el argumento param es una lista de listas que se pueden usar para establecer las distribuciones a priori de los diferente parámetros. Entonces, por ejemplo, configurar dalpha=list(scale=0.1) le dice a make.prior que parametrice nuestra distribución a priori half-Cauchy para alpha usando un valor de parámetro de escala 0.1.
+k es el parámetro que describe el númeor de cambios de óptimo. En este caso asumimos una distribución a priori de tipo Poisson condicional (dk = "cdpois") con los parámetros dk = list (lambda=10, kmax = 50) que indica el valor de lambda de la distribución de Poisson y el número máximo de cambios que son permitidos.
+
+Para correr el análisis le tenemos que indicar valores iniciales a cada uno de los parámetros. Una manera de hacer esto puede ser al azar. bayou lo puede hacer con la función priorSim.
+```{r}
+## randomly select starting values for our MCMC
+startpars<-priorSim(priorOU,mammal.tree,plot=FALSE)$pars[[1]]
+startpars
+```
+
+Podemos apreciar los valores iniciales del análisis. 
+
+Podemos incluso calcular la probabilidad a priori del modelo con de los valores iniciales elegidos al azar.
+
+```{r}
+priorOU(startpars)
+```
+
+Ya estamos preparados para lanzar el análisis.
+
+```{r}
+mcmcOU<-bayou.makeMCMC(mammal.tree,bodyMass,prior=priorOU,plot.freq=NULL,file.dir=NULL,ticker.freq=1000000)
+
+mammal.rjMCMC<-mcmcOU$run(100000)
+
+```
+
+Ahora vamos a descartar las primeras iteraciones del análisis que en cualquier análisis de tipo MCMC son subóptimas. Deberíamos de tener al menos 2 análisis para evaluar convergencia y estacionariedad y decidir el valor de burn-in pero por ahora vamos a descartar simplemente el 30% inicial del análisis.
+Y vamos crear un objeto con un resumen de los resultados del análisis.
+
+```{r}
+mammal.rjMCMC<-set.burnin(mammal.rjMCMC,0.3)
+
+mammal.mcmc.result<-summary(mammal.rjMCMC)
+
+mammal.mcmc.result$statistics
+```
+
+Podemos ver mucha informaicón aquí como el número estimado de cambios de óptimo y su intervalo de confianza.
+
+Podemos utilizar la función plotSimmap.mcmc para ver un resumen visual de los resultados.
+Vamos a representar la probabilidad de cambio de optimo con un corte de 0.25 de probabilidad a posteriori. Y también la evolución del valor de theta en al filogenia.
+
+```{r}
+## split our plotting area into two panels
+par(mar=c(1.1,1.1,3.1,0.1),mfrow=c(1,2))
+## plot regimes using different colors for all regime
+## shifts with PP>0.25
+plotSimmap.mcmc(mammal.rjMCMC,edge.type="regimes",lwd=2,pp.cutoff=0.25,cex=0.6)
+mtext("(a)",adj=0,line=1)
+## plot mean value of theta on each edge across posterior
+## sample from rjMCMC
+plotSimmap.mcmc(mammal.rjMCMC,edge.type="theta",lwd=2,pp.cutoff=0.25,cex=0.6,legend_settings=list(x=0.2*max(nodeHeights(mammal.tree)),y=0.7*Ntip(mammal.tree)))
+mtext("(b)",adj=0,line=1)
+```
+
+######################
+
+ACTIVIDADES
+
+Repita el análisis de Anolis en este capítulo con el paquete OUwie, pero esta vez analice PC1 en lugar de PC3. Describe y cuantifica cómo difieren tus resultados.
+
+```{r}
+##Your code here
+
+
+```
+
+
