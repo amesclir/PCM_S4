@@ -38,7 +38,7 @@ head(Iguania)
 
 ```
 
-Necesitamos hacer algunos ajustes para conseguir tener dos filogenias y sus respectivos dataset de fenotipos en los que coincidan las especies que tenemos en las filogenias y en los datasets.
+Necesitamos hacer algunos ajustes para conseguir tener dos filogenias y sus respectivos datasetS de fenotipos en los que coincidan las especies que tenemos en las filogenias y en los datasets.
 
 ```{r}
 ## load geiger
@@ -114,7 +114,7 @@ Para ajustar nuestro modelo OU con multiples óptimos usaremos el paquete OUwie.
 library(OUwie)
 ```
 
-En este caso no vamos a usar directamente uno y otro rasgos, en cambio haraemos un PCA filogenetico de todos los rasgos disponibles.
+En este caso no vamos a usar directamente uno y otro rasgos, en cambio haraemos un PCA filogenetico de todos los rasgos disponibles (SVL, HL, HLL, FLL, LAM y TL).
 
 ```{r}
 ## run phylogenetic PCA and print the results
@@ -122,9 +122,9 @@ pca<-phyl.pca(ecomorph.tree,ecomorph.data)
 print(pca)
 ```
 
-Vamos a utilizar en nuestros análisis el PC3 que está directamente relacionado con la longitud de la extremidad delantera y trasera e inversametne relacionado con el número de laminillas que expansiones en forma de escama de los dedos y son claves en la típica escalada de estos animales. Las especies de este grupo que viven en árboles (escaladoras) suelen tener extremidades más cortas y mayor número de laminillas por lo que el PC# es de sumo interés para estudiar el microhabitat de estos organismos.
+Vamos a utilizar en nuestros análisis el PC3 que está directamente relacionado con la longitud de la extremidad delantera (FLL) y trasera (HLL) e inversamente relacionado con el número de laminillas (LAM) que son expansiones en forma de escama de los dedos y son claves en la típica escalada de estos animales. Las especies de este grupo que viven en árboles (escaladoras) suelen tener extremidades más cortas y mayor número de laminillas por lo que el PC3 es de sumo interés para estudiar el microhabitat de estos organismos.
 
-Para trabajar con OUwie lo primero que tenemos que hacer es fabricar un data.frame con los nombres de nuestras especies, el óptimo al que pertnece cada especie en nuestro análisis (en nuestro caso los diferentes microhabitat) y nuestro caracter continuo (PC3).
+Para trabajar con OUwie lo primero que tenemos que hacer es fabricar un data.frame con los nombres de nuestras especies, el óptimo al que pertnece cada especie en nuestro análisis (en nuestro caso los diferentes microhabitats) y nuestro caracter continuo (PC3).
 
 ```{r}
 ## create our OUwie data frame
@@ -138,12 +138,13 @@ También necesitaremos la reconstrucción de los microhábitats para realizar el
 cols<-setNames(rainbow(n=6),levels(anole.ecomorph[,1]))
 plot(ecomorph.tree,cols,lwd=2,ftype="i",fsize=0.4,ylim=c(-4,82),outline=TRUE)
 add.simmap.legend(colors=cols,prompt=FALSE,x=0,y=-2,vertical=FALSE,fsize=0.9)
+#CG crown-giant, GB grass-bush, TC trunk-crown, TG trunk-ground, Tr trunk, Tw twig
 ```
 
-Finalmente vamos a ajustar nuestro modelos. Ajustaremos un modelo browniano simple, un modelo browniano en el que sigma2 cambia en función del microhabitat y finalmente un modelo OU en el que el optimo theta cambia en función del microhábiat.
+Finalmente vamos a ajustar nuestro modelos. Ajustaremos un modelo browniano simple, un modelo browniano en el que sigma2 cambia en función del microhabitat y finalmente un modelo OU en el que el óptimo theta cambia en función del microhábiat.
 
 ```{r}
-## fit standard, one-rate Brownian model\
+## fit standard, one-rate Brownian model
 fitBM<-OUwie(ecomorph.tree,ouwie.data,model="BM1",simmap.tree=TRUE)
 fitBM
 
@@ -161,9 +162,10 @@ aic
 ## compute Akaike weights
 aic.w(aic)
 ```
+
 El modelo OU con múltiples optimos es muchísimo mejor que los otros dos modelos.
 
-Veamos un gráfico donde podemos apreciar claramente el proceso de convergencia evolutiva que se en este grupo.
+Veamos un gráfico donde podemos apreciar claramente el proceso de convergencia evolutiva que se da en este grupo.
 
 ```{r}
 ## get the tip state for ecomorph for each species
@@ -181,11 +183,11 @@ legend("topright",levels(anole.ecomorph[,1]),pch=22,pt.bg=cols,pt.cex=1.5,cex=0.
 
 MODELOS BROWNIANOS CON MÚTIPLES VARIABLES Y CORRELACIONES EVOLUTIVAS
 
-En primer lugar carguemos los archivo de los datasets necesarios y echemos un vistazo
+En primer lugar carguemos los archivo de los datasets necesarios y echemos un vistazo.
 
 ```{r}
 
-# read in tree with encoded discrete state using\
+# read in tree with encoded discrete state using
 ## phytools::read.simmap as it has a mapped discrete trait
 fish.tree<-read.simmap(file="Centrarchidae.nex",format="nexus",version=1.5)
 print(fish.tree,printlen=2)
@@ -227,6 +229,7 @@ cov2cor(fitMV$R.multiple[,,"pisc"])
 
 Esto nos muestra que el mejor modelo, la correlacion coevolutiva between nuestras dos variables cuantitativas es mucho mayor en peces piscivoros quen en no piscivoros. Esto tiene sentido biológico ya que en los peces piscivoros es necesario una integración mucho mayor de los diferentes aspectos del aparato de alimentación.
 Vamos a visualizar este patrón.
+
 ```{r}
 ## modify the margins of the plot area and adjust axis
 ## and label font sizes
@@ -241,13 +244,15 @@ phylomorphospace(fish.tree,fish.buccal,ftype="off",colors=cols,lwd=2,node.by.map
 legend("topleft",c("non-piscivorous","piscivorous"),pch=22,pt.bg=cols,pt.cex=1.5,cex=0.7)
 ```
 
+
 HETEROGENEIDAD EVOLUTIVA DEL MODELO BROWNIANO
 
 Ahora ajustaremos modelos en los que la tasa evolutiva sigma2 varía en función del tiempo.
 
-Una primera posibiliad es que haya cambios bruscos en la tasa de evolución en un punto o varios puntos de la filogenia. Pero en este caso en vez de eso cambios estar marcados a priori por un caracter discreto, la localización del dichos cambios será también estimada.
+Una primera posibiliad es que haya cambios bruscos en la tasa de evolución en un punto o varios puntos de la filogenia. Pero en este caso en vez de esos cambios estar marcados a priori por un caracter discreto, la localización del dichos cambios será también estimada.
 Esto lo podemos hacer con la función rateshift de phytools.
-Para comprobar esto vamos a utilizar un dataset de Broeckhoven et al., (2016) en la que los autores estudian la evolución de las estructura de defensa en una familia de lagartos sudafricanos, Cordylidae. Usaremos la función mencionada para ajustar un modelo en la que la tasa de cambio descenso de manera brusca a partir de un momento (En el estudio original se ajusto un modelo EB o early burst en la que tasa de evolución es máxima en la raiz del árbol y luego decae progresivamente hasta el presente).
+Para comprobar esto vamos a utilizar un dataset de Broeckhoven et al., (2016) en la que los autores estudian la evolución de las estructura de defensa en una familia de lagartos sudafricanos, Cordylidae. Usaremos la función mencionada para ajustar un modelo en la que la tasa de cambio desciende de manera brusca a partir de un momento (En el estudio original se ajusto un modelo EB o early burst en la que tasa de evolución es máxima en la raiz del árbol y luego decae progresivamente hasta el presente).
+
 En primer lugar vamos a cargar y explorar los dataset disponibles en este proyecto de R.
 
 ```{r}
@@ -353,15 +358,15 @@ ESTADÍSTICA BAYESIANA PARA LA COMPUTACIÓN DE MODELOS COMPLEJOS
 
 En este caso usamos rjMCMC (reversible jump Markov chain Monte Carlo). Es similar a MCMC pero en este caso no solo muestreamos diferentes valores de los parametros en la cadenas de Markov para calcular su distribución a posteriorin en este caso incluso saltamos entre diferentes altenativas de conjunto de parámetros en los modelos muestreados.
 En este caso podremos muestrear parametros entre diferentes modelos en los que no hay cambio en la tasa evolutiva o bien hay 1, 2, 3, etc. cambios en la tasa evolutiva. Al final obtendremos la distribución y probabilidad a posteriori de los diferentes parámeteros y modelos muestreados.
-Este tipo de análisis han aparecido recientemente (Eastman et al., 2011; Pagel and Meade 2013) pero cada vez se están haciendo más y más populares.
-Hay diferentes implementaciones de modelos mediante rjMCMC. Nosotros revemos una de ellas, en concreto la que está implementada en el paquete bayou de R. En este paquete se pueden inferir mediante rjMCMC el número de cambos de optimo en modelos OU más o menos complejos.
+Este tipo de análisis han aparecido recientemente (Eastman et al., 2011) pero cada vez se están haciendo más y más populares.
+Hay diferentes implementaciones de modelos mediante rjMCMC. Nosotros veremos aquí una de ellas (aunque en otra sesión veremos el software BAMM), en concreto la que está implementada en el paquete bayou de R (Uyeda et al., 2012). En este paquete se pueden inferir mediante rjMCMC el número de cambos de optimo en modelos OU más o menos complejos.
 El paquete Bayou no está en CRAN y tendrás que instalarlo directamente desde un repositorio de Github con la función install_github del paquete de R devtools.
 
 ```{r}
 ## load devtools
-require(devtools)
+##require(devtools)
 ## install bayou from GitHub
-install_github("uyedaj/bayou")
+##install_github("uyedaj/bayou")
 library(bayou)
 
 ```
@@ -389,7 +394,7 @@ par(bty="n")
 priorOU<-make.prior(mammal.tree,dists=list(dalpha="dhalfcauchy",dsig2="dhalfcauchy",dk="cdpois",dtheta="dnorm"),param=list(dalpha=list(scale=0.1),dsig2=list(scale=0.1),dk=list(lambda=10, kmax=50),dsb=list(bmax=1, prob=1),dtheta=list(mean=mean(bodyMass),sd=1.5*sd(bodyMass))),plot.prior=TRUE)
 ```
 
-La configuración de dalpha="dhalfcauchy" asigna una distribución a priori tipo half-Cauchy parámetro alpaha del modelo OU. Del mismo modo, el argumento param es una lista de listas que se pueden usar para establecer las distribuciones a priori de los diferente parámetros. Entonces, por ejemplo, configurar dalpha=list(scale=0.1) le dice a make.prior que parametrice nuestra distribución a priori half-Cauchy para alpha usando un valor de parámetro de escala 0.1.
+La configuración de dalpha="dhalfcauchy" asigna una distribución a priori tipo half-Cauchy al parámetro alpha del modelo OU. Del mismo modo, el argumento param es una lista de listas que se pueden usar para establecer las distribuciones a priori de los diferente parámetros. Entonces, por ejemplo, configurar dalpha=list(scale=0.1) le dice a make.prior que parametrice nuestra distribución a priori half-Cauchy para alpha usando un valor de parámetro de escala 0.1.
 k es el parámetro que describe el númeor de cambios de óptimo. En este caso asumimos una distribución a priori de tipo Poisson condicional (dk = "cdpois") con los parámetros dk = list (lambda=10, kmax = 50) que indica el valor de lambda de la distribución de Poisson y el número máximo de cambios que son permitidos.
 
 Para correr el análisis le tenemos que indicar valores iniciales a cada uno de los parámetros. Una manera de hacer esto puede ser al azar. bayou lo puede hacer con la función priorSim.
@@ -401,7 +406,7 @@ startpars
 
 Podemos apreciar los valores iniciales del análisis. 
 
-Podemos incluso calcular la probabilidad a priori del modelo con de los valores iniciales elegidos al azar.
+Podemos incluso calcular la probabilidad a priori del modelo con los valores iniciales elegidos al azar.
 
 ```{r}
 priorOU(startpars)
@@ -416,7 +421,7 @@ mammal.rjMCMC<-mcmcOU$run(100000)
 
 ```
 
-Ahora vamos a descartar las primeras iteraciones del análisis que en cualquier análisis de tipo MCMC son subóptimas. Deberíamos de tener al menos 2 análisis para evaluar convergencia y estacionariedad y decidir el valor de burn-in pero por ahora vamos a descartar simplemente el 30% inicial del análisis.
+Ahora vamos a descartar las primeras iteraciones del análisis que en cualquier análisis de tipo MCMC son subóptimas. Deberíamos de tener al menos 2 análisis para evaluar convergencia y estacionaridad y decidir el valor de burn-in pero por ahora vamos a descartar simplemente el 30% inicial del análisis.
 Y vamos crear un objeto con un resumen de los resultados del análisis.
 
 ```{r}
@@ -457,4 +462,23 @@ Repita el análisis de Anolis en este capítulo con el paquete OUwie, pero esta 
 
 ```
 
+
+BIBLIOGRAFÍA BÁSICA
+
+Revell, L. J., González‐Valenzuela, L. E., Alfonso, A., Castellanos‐García, L. A., Guarnizo, C. E., & Crawford, A. J. (2018). Comparing evolutionary rates between trees, clades and traits. Methods in Ecology and Evolution, 9(4), 994-1005.
+
+O'meara, B. C., Ané, C., Sanderson, M. J., & Wainwright, P. C. (2006). Testing for different rates of continuous trait evolution using likelihood. Evolution, 60(5), 922-933.
+
+
+BIBLIOGRAFÍA RECOMENDADA
+
+Broeckhoven, C., El Adak, Y., Hui, C., Van Damme, R., & Stankowich, T. (2018). On dangerous ground: the evolution of body armour in cordyline lizards. Proceedings of the Royal Society B, 285(1880), 20180513.
+
+Eastman, J. M., Alfaro, M. E., Joyce, P., Hipp, A. L., & Harmon, L. J. (2011). A novel comparative method for identifying shifts in the rate of character evolution on trees. Evolution, 65(12), 3578-3589.
+
+Harmon, L. J., Schulte, J. A., Larson, A., & Losos, J. B. (2003). Tempo and mode of evolutionary radiation in iguanian lizards. Science, 301(5635), 961-964.
+
+Mahler, D. L., Revell, L. J., Glor, R. E., & Losos, J. B. (2010). Ecological opportunity and the rate of morphological evolution in the diversification of Greater Antillean anoles. Evolution, 64(9), 2731-2745.
+
+Uyeda, J. C., & Harmon, L. J. (2014). A novel Bayesian method for inferring and interpreting the dynamics of adaptive landscapes from phylogenetic comparative data. Systematic biology, 63(6), 902-918.
 

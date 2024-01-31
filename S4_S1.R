@@ -31,6 +31,7 @@ head(ouwie.data,n=10)
 cols<-setNames(rainbow(n=6),levels(anole.ecomorph[,1]))
 plot(ecomorph.tree,cols,lwd=2,ftype="i",fsize=0.4,ylim=c(-4,82),outline=TRUE)
 add.simmap.legend(colors=cols,prompt=FALSE,x=0,y=-2,vertical=FALSE,fsize=0.9)
+#CG crown-giant, GB grass-bush, TC trunk-crown, TG trunk-ground, Tr trunk, Tw twig
 
 ## fit standard, one-rate Brownian model\
 fitBM<-OUwie(ecomorph.tree,ouwie.data,model="BM1",simmap.tree=TRUE)
