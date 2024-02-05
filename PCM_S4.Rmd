@@ -38,7 +38,7 @@ head(Iguania)
 
 ```
 
-Necesitamos hacer algunos ajustes para conseguir tener dos filogenias y sus respectivos datasetS de fenotipos en los que coincidan las especies que tenemos en las filogenias y en los datasets.
+Necesitamos hacer algunos ajustes para conseguir tener dos filogenias y sus respectivos datasets de fenotipos en los que coincidan las especies que tenemos en las filogenias y en los datasets.
 
 ```{r}
 ## load geiger
@@ -114,7 +114,7 @@ Para ajustar nuestro modelo OU con multiples óptimos usaremos el paquete OUwie.
 library(OUwie)
 ```
 
-En este caso no vamos a usar directamente uno y otro rasgos, en cambio haraemos un PCA filogenetico de todos los rasgos disponibles (SVL, HL, HLL, FLL, LAM y TL).
+En este caso no vamos a usar directamente uno y otro rasgos, en cambio haremos un PCA filogenetico de todos los rasgos disponibles (SVL, HL, HLL, FLL, LAM y TL).
 
 ```{r}
 ## run phylogenetic PCA and print the results
@@ -124,7 +124,7 @@ print(pca)
 
 Vamos a utilizar en nuestros análisis el PC3 que está directamente relacionado con la longitud de la extremidad delantera (FLL) y trasera (HLL) e inversamente relacionado con el número de laminillas (LAM) que son expansiones en forma de escama de los dedos y son claves en la típica escalada de estos animales. Las especies de este grupo que viven en árboles (escaladoras) suelen tener extremidades más cortas y mayor número de laminillas por lo que el PC3 es de sumo interés para estudiar el microhabitat de estos organismos.
 
-Para trabajar con OUwie lo primero que tenemos que hacer es fabricar un data.frame con los nombres de nuestras especies, el óptimo al que pertnece cada especie en nuestro análisis (en nuestro caso los diferentes microhabitats) y nuestro caracter continuo (PC3).
+Para trabajar con OUwie lo primero que tenemos que hacer es fabricar un data.frame con los nombres de nuestras especies, el óptimo al que pertenece cada especie en nuestro análisis (en nuestro caso los diferentes microhabitats) y nuestro caracter continuo (PC3).
 
 ```{r}
 ## create our OUwie data frame
@@ -141,7 +141,7 @@ add.simmap.legend(colors=cols,prompt=FALSE,x=0,y=-2,vertical=FALSE,fsize=0.9)
 #CG crown-giant, GB grass-bush, TC trunk-crown, TG trunk-ground, Tr trunk, Tw twig
 ```
 
-Finalmente vamos a ajustar nuestro modelos. Ajustaremos un modelo browniano simple, un modelo browniano en el que sigma2 cambia en función del microhabitat y finalmente un modelo OU en el que el óptimo theta cambia en función del microhábiat.
+Finalmente vamos a ajustar nuestros modelos. Ajustaremos un modelo browniano simple, un modelo browniano en el que sigma2 cambia en función del microhabitat y finalmente un modelo OU en el que el óptimo theta cambia en función del microhábiat.
 
 ```{r}
 ## fit standard, one-rate Brownian model
@@ -178,10 +178,12 @@ tip.cols<-cols[tips]
 plotTree.barplot(ecomorph.tree,scores(pca)[,3],args.plotTree=list(fsize=0.4),args.barplot=list(col=tip.cols,xlab=expression(paste("PC3 (",""%up%"","limbs, ",""%down%"","lamellae)",sep="")),cex.lab=0.8))
 ## add an informative legend
 legend("topright",levels(anole.ecomorph[,1]),pch=22,pt.bg=cols,pt.cex=1.5,cex=0.9)
+#CG crown-giant, GB grass-bush, TC trunk-crown, TG trunk-ground, Tr trunk, Tw twig
+
 ```
 
 
-MODELOS BROWNIANOS CON MÚTIPLES VARIABLES Y CORRELACIONES EVOLUTIVAS
+MODELOS BROWNIANOS CON MÚLTIPLES VARIABLES Y CORRELACIONES EVOLUTIVAS
 
 En primer lugar carguemos los archivo de los datasets necesarios y echemos un vistazo.
 
@@ -227,7 +229,7 @@ cov2cor(fitMV$R.multiple[,,"non"])
 cov2cor(fitMV$R.multiple[,,"pisc"])
 ```
 
-Esto nos muestra que el mejor modelo, la correlacion coevolutiva between nuestras dos variables cuantitativas es mucho mayor en peces piscivoros quen en no piscivoros. Esto tiene sentido biológico ya que en los peces piscivoros es necesario una integración mucho mayor de los diferentes aspectos del aparato de alimentación.
+Esto nos muestra que el mejor modelo, la correlacion coevolutiva entre nuestras dos variables cuantitativas es mucho mayor en peces piscivoros que en no piscivoros. Esto tiene sentido biológico ya que en los peces piscivoros es necesario una integración mucho mayor de los diferentes aspectos del aparato de alimentación.
 Vamos a visualizar este patrón.
 
 ```{r}
@@ -272,7 +274,7 @@ Los datos vienen de un PCA. El PC1 está directamente correlacionado con longitu
 cordylid.pc1<-setNames(cordylid.data$pPC1,rownames(cordylid.data))
 ```
 
-Ahora vamos a ajustar modelos brownianos simples, with un cambio en la tasa y con dos cambios en la tasa de evolución.
+Ahora vamos a ajustar modelos brownianos simples, con un cambio en la tasa y con dos cambios en la tasa de evolución.
 Vamos a incluir también el modelo EB para comparar con el estudio original. 
 Y finalmente vamos a comparar todos los modelos.
 
@@ -292,7 +294,7 @@ fits<-list(fit1,fitEB,fit2,fit3)
 data.frame(model=c("BM","EB","two-rate","three-rate"),logL=sapply(fits,logLik),k=sapply(fits,function(x) attr(logLik(x),"df")),AIC=sapply(fits,AIC),weight=unclass(aic.w(sapply(fits,AIC))))
 ```
 
-El mejor modelo es el que tiene 2 tasas evolutivas (aunque muy cercano al que tiene una sola tasa evolutiva).
+El mejor modelo es el que tiene 2 tasas evolutivas (aunque muy cercano al que tiene tres tasas evolutivas).
 Veamos el más complejo.
 
 ```{r}
@@ -356,7 +358,7 @@ mtext("(h)",adj=0,line=0)
 
 ESTADÍSTICA BAYESIANA PARA LA COMPUTACIÓN DE MODELOS COMPLEJOS
 
-En este caso usamos rjMCMC (reversible jump Markov chain Monte Carlo). Es similar a MCMC pero en este caso no solo muestreamos diferentes valores de los parametros en la cadenas de Markov para calcular su distribución a posteriorin en este caso incluso saltamos entre diferentes altenativas de conjunto de parámetros en los modelos muestreados.
+En este caso usamos rjMCMC (reversible jump Markov chain Monte Carlo). Es similar a MCMC pero en este caso no solo muestreamos diferentes valores de los parametros en las cadenas de Markov para calcular su distribución a posteriori, en este caso incluso saltamos entre diferentes altenativas de conjunto de parámetros en los modelos muestreados.
 En este caso podremos muestrear parametros entre diferentes modelos en los que no hay cambio en la tasa evolutiva o bien hay 1, 2, 3, etc. cambios en la tasa evolutiva. Al final obtendremos la distribución y probabilidad a posteriori de los diferentes parámeteros y modelos muestreados.
 Este tipo de análisis han aparecido recientemente (Eastman et al., 2011) pero cada vez se están haciendo más y más populares.
 Hay diferentes implementaciones de modelos mediante rjMCMC. Nosotros veremos aquí una de ellas (aunque en otra sesión veremos el software BAMM), en concreto la que está implementada en el paquete bayou de R (Uyeda et al., 2012). En este paquete se pueden inferir mediante rjMCMC el número de cambos de optimo en modelos OU más o menos complejos.
@@ -454,7 +456,15 @@ mtext("(b)",adj=0,line=1)
 
 ACTIVIDADES
 
-Repita el análisis de Anolis en este capítulo con el paquete OUwie, pero esta vez analice PC1 en lugar de PC3. Describe y cuantifica cómo difieren tus resultados.
+1. Repita el análisis de Anolis en este capítulo con el paquete OUwie, pero esta vez analice PC1 en lugar de PC3. Describe y cuantifica cómo difieren tus resultados.
+
+```{r}
+##Your code here
+
+
+```
+
+2. Repita el análisis de la evolución correlacionadas de medidas de la boca de peces piscívoros y no piscívoros, pero en este caso con la función evolvcv.lite (que nos dará dos modelos intermedios que no nos da la función evol.vcv. Esto modelos intermedios son aquellos en los que nuestros dos carácteres de interés evolucionan con la misma tasa en toda la filogenia pero con covarianza diferente, y viceversa).
 
 ```{r}
 ##Your code here
