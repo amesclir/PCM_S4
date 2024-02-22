@@ -120,6 +120,7 @@ En este caso no vamos a usar directamente uno y otro rasgos, en cambio haremos u
 ## run phylogenetic PCA and print the results
 pca<-phyl.pca(ecomorph.tree,ecomorph.data)
 print(pca)
+
 ```
 
 Vamos a utilizar en nuestros análisis el PC3 que está directamente relacionado con la longitud de la extremidad delantera (FLL) y trasera (HLL) e inversamente relacionado con el número de laminillas (LAM) que son expansiones en forma de escama de los dedos y son claves en la típica escalada de estos animales. Las especies de este grupo que viven en árboles (escaladoras) suelen tener extremidades más cortas y mayor número de laminillas por lo que el PC3 es de sumo interés para estudiar el microhabitat de estos organismos.
