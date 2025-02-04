@@ -11,7 +11,7 @@ editor_options:
 MODELO BROWNIANO CON MULTIPLES TASAS
 
 Ahora veremos modelos brownianos en los que la tasa de evolución, sigma2, puede diferir entre diferentes clados o diferentes partes del árbol filogenético.
-Estos está implementado en varias funciones de R como por ejemplo la función ratebytree de phytools.
+Estos modelos están implementado en varias funciones de R como por ejemplo la función ratebytree de phytools.
 Vamos a ajustar modelos con 2, 3, 4, etc. tasas de evolución y los compararemos con el modelo más simple con una sola tasa evolutiva (Revell et al., 2018). Este método fue llamado método "censored" en la descripción original del modelo (O'Meara et al., 2006).
 
 Cargaremos un dataset de dos grupos diferentes de lagartos: La familia norteamericana Phtynosomatidae y el clado sudamericano Liolaemidae (Harmon et al., 2003).
@@ -114,7 +114,7 @@ Para ajustar nuestro modelo OU con multiples óptimos usaremos el paquete OUwie.
 library(OUwie)
 ```
 
-En este caso no vamos a usar directamente uno y otro rasgos, en cambio haremos un PCA filogenetico de todos los rasgos disponibles (SVL, HL, HLL, FLL, LAM y TL).
+En este caso no vamos a usar directamente uno y otro rasgo cuantitativo continuo disponible, en cambio haremos un PCA filogenetico de todos los rasgos disponibles (SVL, HL, HLL, FLL, LAM y TL).
 
 ```{r}
 ## run phylogenetic PCA and print the results
@@ -186,7 +186,7 @@ legend("topright",levels(anole.ecomorph[,1]),pch=22,pt.bg=cols,pt.cex=1.5,cex=0.
 
 MODELOS BROWNIANOS CON MÚLTIPLES VARIABLES Y CORRELACIONES EVOLUTIVAS
 
-En primer lugar carguemos los archivo de los datasets necesarios y echemos un vistazo.
+En primer lugar carguemos los archivos de los datasets necesarios para ajustar los modelos y echemos un vistazo.
 
 ```{r}
 
@@ -252,7 +252,7 @@ HETEROGENEIDAD EVOLUTIVA DEL MODELO BROWNIANO
 
 Ahora ajustaremos modelos en los que la tasa evolutiva sigma2 varía en función del tiempo.
 
-Una primera posibiliad es que haya cambios bruscos en la tasa de evolución en un punto o varios puntos de la filogenia. Pero en este caso en vez de esos cambios estar marcados a priori por un caracter discreto, la localización del dichos cambios será también estimada.
+Una primera posibiliad es que haya cambios bruscos en la tasa de evolución en un punto o varios puntos de la filogenia. Pero en este caso en vez de esos cambios estar marcados a priori por un caracter discreto, la localización de dichos cambios será también estimada.
 Esto lo podemos hacer con la función rateshift de phytools.
 Para comprobar esto vamos a utilizar un dataset de Broeckhoven et al., (2016) en la que los autores estudian la evolución de las estructura de defensa en una familia de lagartos sudafricanos, Cordylidae. Usaremos la función mencionada para ajustar un modelo en la que la tasa de cambio desciende de manera brusca a partir de un momento (En el estudio original se ajusto un modelo EB o early burst en la que tasa de evolución es máxima en la raiz del árbol y luego decae progresivamente hasta el presente).
 
@@ -357,13 +357,31 @@ mtext("(h)",adj=0,line=0)
 ```
 
 
-ESTADÍSTICA BAYESIANA PARA LA COMPUTACIÓN DE MODELOS COMPLEJOS
+ESTADÍSTICA BAYESIANA Y LA COMPUTACIÓN DE MODELOS EVOLUTIVOS COMPLEJOS
 
-En este caso usamos rjMCMC (reversible jump Markov chain Monte Carlo). Es similar a MCMC pero en este caso no solo muestreamos diferentes valores de los parametros en las cadenas de Markov para calcular su distribución a posteriori, en este caso incluso saltamos entre diferentes altenativas de conjunto de parámetros en los modelos muestreados.
-En este caso podremos muestrear parametros entre diferentes modelos en los que no hay cambio en la tasa evolutiva o bien hay 1, 2, 3, etc. cambios en la tasa evolutiva. Al final obtendremos la distribución y probabilidad a posteriori de los diferentes parámeteros y modelos muestreados.
-Este tipo de análisis han aparecido recientemente (Eastman et al., 2011) pero cada vez se están haciendo más y más populares.
-Hay diferentes implementaciones de modelos mediante rjMCMC. Nosotros veremos aquí una de ellas (aunque en otra sesión veremos el software BAMM), en concreto la que está implementada en el paquete bayou de R (Uyeda et al., 2012). En este paquete se pueden inferir mediante rjMCMC el número de cambos de optimo en modelos OU más o menos complejos.
-El paquete Bayou no está en CRAN y tendrás que instalarlo directamente desde un repositorio de Github con la función install_github del paquete de R devtools.
+Cuando nos enfrentamos a modelos evolutivos complejos, como aquellos que involucran cambios en la tasa de evolución a lo largo del tiempo, necesitamos herramientas estadísticas potentes. Una de estas herramientas es el método rjMCMC (reversible jump Markov chain Monte Carlo).
+
+¿Qué es rjMCMC?
+
+Imagina que estás explorando un paisaje montañoso en busca del punto más alto. En lugar de caminar sin rumbo, utilizas un método que te permite saltar entre diferentes picos y valles, explorando así una mayor área. rjMCMC es similar: en lugar de simplemente ajustar los valores de los parámetros de un modelo, este método también te permite saltar entre diferentes modelos, cada uno con un conjunto distinto de parámetros.
+
+Aplicación a modelos evolutivos
+
+En nuestro caso, esto significa que podemos utilizar rjMCMC para explorar modelos evolutivos que difieren en el número de cambios en la tasa de evolución. Por ejemplo, podemos comparar un modelo sin cambios en la tasa con modelos que tienen 1, 2, 3 o más cambios. Al final del análisis, obtendremos la distribución a posteriori de los parámetros y modelos explorados, lo que nos permitirá determinar cuál modelo se ajusta mejor a nuestros datos.
+
+Popularidad creciente
+
+Este tipo de análisis, aunque relativamente reciente (Eastman et al., 2011), se está volviendo cada vez más popular en la biología evolutiva.
+
+Implementación en R con el paquete bayou
+
+Existen diversas implementaciones de modelos rjMCMC. En esta ocasión, nos centraremos en la implementación del paquete bayou de R (Uyeda et al., 2012). Este paquete nos permite inferir, mediante rjMCMC, el número de cambios en el óptimo de modelos Ornstein-Uhlenbeck (OU) más o menos complejos.
+
+Instalación del paquete bayou
+
+Es importante tener en cuenta que el paquete bayou no se encuentra en CRAN, el repositorio principal de paquetes de R. Por lo tanto, para instalarlo, deberemos utilizar la función install_github del paquete devtools de R, que nos permite instalar paquetes directamente desde repositorios de Github.
+
+En resumen, rjMCMC es una herramienta poderosa que nos permite explorar una amplia gama de modelos evolutivos complejos y determinar cuál de ellos se ajusta mejor a nuestros datos. El paquete bayou de R facilita la aplicación de este método a modelos OU, lo que nos permite inferir el número de cambios en el óptimo a lo largo del tiempo.
 
 ```{r}
 ## load devtools
@@ -397,8 +415,29 @@ par(bty="n")
 priorOU<-make.prior(mammal.tree,dists=list(dalpha="dhalfcauchy",dsig2="dhalfcauchy",dk="cdpois",dtheta="dnorm"),param=list(dalpha=list(scale=0.1),dsig2=list(scale=0.1),dk=list(lambda=10, kmax=50),dsb=list(bmax=1, prob=1),dtheta=list(mean=mean(bodyMass),sd=1.5*sd(bodyMass))),plot.prior=TRUE)
 ```
 
-La configuración de dalpha="dhalfcauchy" asigna una distribución a priori tipo half-Cauchy al parámetro alpha del modelo OU. Del mismo modo, el argumento param es una lista de listas que se pueden usar para establecer las distribuciones a priori de los diferente parámetros. Entonces, por ejemplo, configurar dalpha=list(scale=0.1) le dice a make.prior que parametrice nuestra distribución a priori half-Cauchy para alpha usando un valor de parámetro de escala 0.1.
-k es el parámetro que describe el númeor de cambios de óptimo. En este caso asumimos una distribución a priori de tipo Poisson condicional (dk = "cdpois") con los parámetros dk = list (lambda=10, kmax = 50) que indica el valor de lambda de la distribución de Poisson y el número máximo de cambios que son permitidos.
+La función make.prior nos permite definir las distribuciones a priori para los parámetros de nuestro modelo Ornstein-Uhlenbeck (OU). Estas distribuciones reflejan nuestras expectativas iniciales sobre los valores de los parámetros antes de analizar los datos.
+
+dalpha: La fuerza de la selección natural
+
+dalpha="dhalfcauchy": Asignamos una distribución a priori de tipo half-Cauchy al parámetro alfa (α), que representa la fuerza de la selección natural. La distribución half-Cauchy es una distribución que solo toma valores positivos, lo cual es lógico ya que la fuerza de la selección no puede ser negativa.
+param=list(dalpha=list(scale=0.1)): Especificamos los parámetros de la distribución half-Cauchy. En este caso, el parámetro de escala es 0.1. Este valor controla la dispersión de la distribución, es decir, cuán probable es que alfa tome valores cercanos a cero o más alejados.
+
+dk: El número de cambios de óptimo
+
+dk="cdpois": Utilizamos una distribución a priori de tipo Poisson condicional para el parámetro k, que representa el número de cambios de óptimo en el modelo OU. La distribución de Poisson es adecuada para modelar el número de eventos que ocurren en un intervalo de tiempo dado, como el número de cambios de óptimo en nuestro modelo.
+param=list(dk=list(lambda=10, kmax=50)): Definimos los parámetros de la distribución de Poisson condicional. lambda (λ) es el parámetro de tasa, que controla el número esperado de cambios de óptimo. kmax es el número máximo de cambios permitidos. En este caso, esperamos en promedio 10 cambios, pero permitimos hasta un máximo de 50.
+
+Otros parámetros
+
+De manera similar, podemos definir las distribuciones a priori para los demás parámetros del modelo OU, como dsig2 (la varianza del proceso) y dtheta (el valor óptimo).
+
+plot.prior=TRUE
+
+Esta opción le dice a la función make.prior que represente las distribuciones a priori que hemos definido. Esto es útil para visualizar nuestras expectativas iniciales sobre los parámetros y asegurarnos de que son adecuadas para nuestro análisis.
+
+La función make.prior nos permite configurar las distribuciones a priori para los parámetros del modelo OU, lo cual es un paso fundamental en el análisis bayesiano. Estas distribuciones reflejan nuestras creencias iniciales sobre los valores de los parámetros y influyen en los resultados finales del análisis.
+
+
 
 Para correr el análisis le tenemos que indicar valores iniciales a cada uno de los parámetros. Una manera de hacer esto puede ser al azar. bayou lo puede hacer con la función priorSim.
 ```{r}
@@ -435,7 +474,30 @@ mammal.mcmc.result<-summary(mammal.rjMCMC)
 mammal.mcmc.result$statistics
 ```
 
-Podemos ver mucha informaicón aquí como el número estimado de cambios de óptimo y su intervalo de confianza.
+Descripción de la tabla mammal.mcmc.result$statistics
+
+Esta tabla resume los resultados de un análisis bayesiano utilizando el método MCMC (Markov chain Monte Carlo) para un modelo filogenético de evolución de rasgos en mamíferos. Cada fila representa un parámetro del modelo, y las columnas muestran diferentes estadísticas resumen de las muestras obtenidas para cada parámetro durante el proceso de MCMC.
+
+Filas:
+
+lnL (Log-verosimilitud): Logaritmo de la verosimilitud del modelo. Este valor mide el ajuste del modelo a los datos observados.
+prior (Prior): Logaritmo de la probabilidad a priori del modelo. Este valor refleja nuestras creencias iniciales sobre los parámetros antes de ver los datos.
+alpha: Parámetro que representa la fuerza de la selección natural en el modelo Ornstein-Uhlenbeck (OU).
+sig2: Parámetro que representa la varianza del proceso de difusión en el modelo browniano o la varianza del error en el modelo OU.
+k: Parámetro que representa el número de cambios de régimen (o de óptimo) en el modelo.
+ntheta: Número de valores óptimos (theta) distintos en el modelo.
+root.theta: Valor óptimo (theta) en la raíz del árbol filogenético.
+all theta: Un resumen de los valores óptimos (theta) para todos los nodos del árbol filogenético.
+
+Columnas:
+
+Mean (Media): Media de las muestras a posteriori para cada parámetro. Esta es una estimación del valor más probable del parámetro.
+SD (Desviación Estándar): Desviación estándar de las muestras a posteriori. Esta medida indica la incertidumbre asociada a la estimación del parámetro.
+Naive SE (Error Estándar Ingenuo): Estimación del error estándar de la media, sin tener en cuenta la autocorrelación en las cadenas de MCMC.
+Time-series SE (Error Estándar de la Serie de Tiempo): Estimación del error estándar de la media, teniendo en cuenta la autocorrelación en las cadenas de MCMC. Esta es una estimación más precisa del error estándar.
+Effective Size (Tamaño Efectivo): Número de muestras independientes equivalentes a las muestras autocorrelacionadas obtenidas en las cadenas de MCMC. Un tamaño efectivo grande indica una mejor convergencia de las cadenas.
+HPD95Lower (Límite Inferior del Intervalo de Credibilidad del 95%): Límite inferior del intervalo de credibilidad del 95%. Este intervalo contiene el 95% de la probabilidad a posteriori del parámetro.
+HPD95Upper (Límite Superior del Intervalo de Credibilidad del 95%): Límite superior del intervalo de credibilidad del 95%.
 
 Podemos utilizar la función plotSimmap.mcmc para ver un resumen visual de los resultados.
 Vamos a representar la probabilidad de cambio de optimo con un corte de 0.25 de probabilidad a posteriori. Y también la evolución del valor de theta en al filogenia.
@@ -453,6 +515,9 @@ plotSimmap.mcmc(mammal.rjMCMC,edge.type="theta",lwd=2,pp.cutoff=0.25,cex=0.6,leg
 mtext("(b)",adj=0,line=1)
 ```
 
+En ambos arboles tenemos la probabilidad de cambio de optimo en cada rama representado con una un circulo, cuanto más grande mayor probabilidad. 
+En el panel a las ramas están coloreadas en función de régiomen selectiovo theta al que pertenen, considerando solo los cambios con una PP mayor de 0.25.
+En el panel b podemos apreciar la reconstrucción de caracter de interés en la filogenia.
 ######################
 
 ACTIVIDADES
@@ -474,14 +539,14 @@ ACTIVIDADES
 ```
 
 
-BIBLIOGRAFÍA BÁSICA
+BIBLIOGRAFÍA TEÓRICA BÁSICA
 
 Revell, L. J., González‐Valenzuela, L. E., Alfonso, A., Castellanos‐García, L. A., Guarnizo, C. E., & Crawford, A. J. (2018). Comparing evolutionary rates between trees, clades and traits. Methods in Ecology and Evolution, 9(4), 994-1005.
 
 O'meara, B. C., Ané, C., Sanderson, M. J., & Wainwright, P. C. (2006). Testing for different rates of continuous trait evolution using likelihood. Evolution, 60(5), 922-933.
 
 
-BIBLIOGRAFÍA RECOMENDADA
+BIBLIOGRAFÍA COMPLEMENTARIA RECOMENDADA
 
 Broeckhoven, C., El Adak, Y., Hui, C., Van Damme, R., & Stankowich, T. (2018). On dangerous ground: the evolution of body armour in cordyline lizards. Proceedings of the Royal Society B, 285(1880), 20180513.
 
@@ -493,3 +558,8 @@ Mahler, D. L., Revell, L. J., Glor, R. E., & Losos, J. B. (2010). Ecological opp
 
 Uyeda, J. C., & Harmon, L. J. (2014). A novel Bayesian method for inferring and interpreting the dynamics of adaptive landscapes from phylogenetic comparative data. Systematic biology, 63(6), 902-918.
 
+
+REFERENCIAS DE CASOS PRÁCTICOS
+Larridon, I., Galan Diaz, J., Bauters, K., & Escudero, M. (2021). What drives diversification in a pantropical plant lineage with extraordinary capacity for long‐distance dispersal and colonization?. Journal of Biogeography, 48(1), 64-77.
+
+Márquez‐Corro, J. I., Martín‐Bravo, S., Jiménez‐Mejías, P., Hipp, A. L., Spalink, D., Naczi, R. F., ... & Escudero, M. (2021). Macroevolutionary insights into sedges (Carex: Cyperaceae): the effects of rapid chromosome number evolution on lineage diversification. Journal of Systematics and Evolution, 59(4), 776-790.
